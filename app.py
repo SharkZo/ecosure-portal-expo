@@ -7,6 +7,9 @@ import re
 import time
 import plotly.express as px
 import hashlib
+import smtplib  # WAJIB ADA
+from email.mime.text import MIMEText # WAJIB ADA
+from email.mime.multipart import MIMEMultipart # WAJIB ADA
 
 
 # ==========================================
@@ -282,7 +285,7 @@ elif user_role == "HR Management":
             conn = sqlite3.connect('ecosure.db')
             conn.execute("DELETE FROM analysis_results")
             conn.commit(); conn.close(); st.rerun()
-            
+
             # --- BAGIAN DECISION PANEL YANG SUDAH DIPERBAIKI ---
             with st.expander("📝 Decision Panel", expanded=True):
                 st.info(f"AI Report: {cand['report']}")
