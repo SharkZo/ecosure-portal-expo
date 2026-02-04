@@ -105,28 +105,24 @@ def send_email(target_email, candidate_name, score, feedback):
         msg['To'] = target_email
         msg['Subject'] = f"Congratulations! You are Accepted - ECOSURE Portal"
         
-        # --- ISI EMAIL BARU (Lebih Ramah & Profesional) ---
-        body = f"""
-Dear Candidate,
+        # --- ISI EMAIL BARU (Tanpa Konten Analisis Panjang) ---
+        body = f"""Dear Candidate,
 
 Congratulations! 🥳
 
-We are pleased to inform you that after reviewing your application and CV, you have been ACCEPTED for the position at ECOSURE Portal.
+We are pleased to inform you that after reviewing your application, you have been ACCEPTED for the position at ECOSURE Portal.
 
-Our AI-assisted evaluation gave your profile a Match Score of: {score}/100.
-
-Summary of Evaluation:
-{feedback}
+Your application received an AI Match Score of: {score}/100.
 
 What's next?
-Our HR Team will contact you shortly regarding the onboarding process and further requirements. Please keep your phone active and monitor your email regularly.
+Our HR Team will contact you shortly regarding the onboarding process, document requirements, and further interviews. Please ensure your contact information is active and monitor your inbox regularly.
 
-Welcome to the team!
+Thank you for choosing ECOSURE as your career partner. We look forward to working with you!
 
 Best Regards,
 ECOSURE Recruitment Team
-🌿 Sustainable Careers for a Greener Future
-        """
+🌿 Sustainable Careers for a Greener Future"""
+
         msg.attach(MIMEText(body, 'plain'))
         
         server = smtplib.SMTP('smtp.gmail.com', 587)
