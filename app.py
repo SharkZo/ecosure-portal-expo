@@ -97,20 +97,38 @@ def input_pdf_text(uploaded_file):
     # --- FUNGSI KIRIM EMAIL ---
 def send_email(target_email, candidate_name, score, feedback):
     try:
-        # Mengambil data dari Secrets (Streamlit Cloud)
         sender_email = st.secrets["EMAIL_USER"]
         sender_password = st.secrets["EMAIL_PASS"]
         
-        # Pengaturan pesan
         msg = MIMEMultipart()
-        msg['From'] = sender_email
+        msg['From'] = f"ECOSURE Recruitment Team <{sender_email}>"
         msg['To'] = target_email
-        msg['Subject'] = f"Hasil Seleksi Ecosure Portal - {candidate_name}"
+        msg['Subject'] = f"Congratulations! You are Accepted - ECOSURE Portal"
         
-        body = f"Halo {candidate_name},\n\nTerima kasih telah melamar. Skor CV Anda: {score}/100\n\nEvaluasi:\n{feedback}"
+        # --- ISI EMAIL BARU (Lebih Ramah & Profesional) ---
+        body = f"""
+Dear Candidate,
+
+Congratulations! 🥳
+
+We are pleased to inform you that after reviewing your application and CV, you have been ACCEPTED for the position at ECOSURE Portal.
+
+Our AI-assisted evaluation gave your profile a Match Score of: {score}/100.
+
+Summary of Evaluation:
+{feedback}
+
+What's next?
+Our HR Team will contact you shortly regarding the onboarding process and further requirements. Please keep your phone active and monitor your email regularly.
+
+Welcome to the team!
+
+Best Regards,
+ECOSURE Recruitment Team
+🌿 Sustainable Careers for a Greener Future
+        """
         msg.attach(MIMEText(body, 'plain'))
         
-        # Proses pengiriman melalui server Gmail
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
         server.login(sender_email, sender_password)
@@ -118,7 +136,7 @@ def send_email(target_email, candidate_name, score, feedback):
         server.quit()
         return True
     except Exception as e:
-        st.error(f"Gagal kirim email: {e}")
+        st.error(f"Email Error: {e}")
         return False
 
 # ==========================================
