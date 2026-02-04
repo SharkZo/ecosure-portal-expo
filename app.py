@@ -82,7 +82,7 @@ st.markdown("""
     
     /* CSS kamu yang lain tetap di sini... */
     </style>
-    """, unsafe_allow_html=False)
+    """, unsafe_allow_html=True)
 
 # DATA JOB BOARD
 jobs_db = {
