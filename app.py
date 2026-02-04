@@ -281,44 +281,20 @@ elif user_role == "HR Management":
                 st.rerun()
     else:
         st.sidebar.button("Lock", on_click=lambda: st.session_state.update({"hr_logged_in": False}))
+        
         if st.sidebar.button("🗑️ Reset All Data"):
             conn = sqlite3.connect('ecosure.db')
             conn.execute("DELETE FROM analysis_results")
-            conn.commit(); conn.close(); st.rerun()
-
-            # --- BAGIAN DECISION PANEL YANG SUDAH DIPERBAIKI ---
-            with st.expander("📝 Decision Panel", expanded=True):
-                st.info(f"AI Report: {cand['report']}")
-                opts = ["Pending", "Accepted", "Rejected"]
-                new_dec = st.radio("Verdict:", opts, index=opts.index(cand['status']) if cand['status'] in opts else 0)
-                
-                if st.button("Confirm Decision & Send Email"):
-                    # 1. Update status di Database
-                    cursor = conn.cursor()
-                    cursor.execute("UPDATE analysis_results SET status = ? WHERE id = ?", (new_dec, int(cand['id'])))
-                    conn.commit()
-                    
-                    # 2. Logika Kirim Email jika HR memilih 'Accepted'
-                    if new_dec == "Accepted":
-                        with st.spinner("Sending automated evaluation report..."):
-                            success = send_email(
-                                target_email=cand['candidate_email'], 
-                                candidate_name="Candidate", 
-                                score=cand['score_val'], 
-                                feedback=cand['report']
-                            )
-                            if success:
-                                st.success(f"Notification sent to {cand['candidate_email']}!")
-                    
-                    st.success(f"Decision updated to {new_dec}!")
-                    time.sleep(1)
-                    st.rerun()
+            conn.commit()
+            conn.close()
+            st.rerun()
 
         st.title("📊 Intelligence Dashboard")
         conn = sqlite3.connect('ecosure.db')
         df = pd.read_sql_query("SELECT * FROM analysis_results ORDER BY score_val DESC", conn)
         
         if not df.empty:
+            # 1. Metrics & Charts
             m1, m2, m3 = st.columns(3)
             m1.metric("Applicants", len(df))
             m2.metric("Accepted", len(df[df['status']=='Accepted']))
@@ -332,27 +308,61 @@ elif user_role == "HR Management":
             with c_pie:
                 st.plotly_chart(px.pie(df, names='status', hole=0.5, color='status', color_discrete_map=color_map), use_container_width=True)
             
+            # 2. Leaderboard
             st.subheader("🏆 Leaderboard")
             st.dataframe(df[['candidate_email', 'job_title', 'score_val', 'status']], use_container_width=True)
 
             st.divider()
+            
+            # 3. Decision Section
             st.subheader("📂 Review & Decisions")
             df['key'] = df['candidate_email'] + " (" + df['job_title'] + ")"
             target = st.selectbox("Select Candidate:", df['key'].unique())
+            
+            # Mencari data kandidat yang dipilih
             cand = df[df['key'] == target].iloc[0]
 
+            # Download CV Button
             if cand['cv_blob'] is not None:
-                st.download_button(label=f"📥 Download CV - {cand['candidate_email']}", data=cand['cv_blob'], file_name=f"CV_{cand['candidate_email']}.pdf", mime="application/pdf")
+                st.download_button(
+                    label=f"📥 Download CV - {cand['candidate_email']}", 
+                    data=cand['cv_blob'], 
+                    file_name=f"CV_{cand['candidate_email']}.pdf", 
+                    mime="application/pdf"
+                )
             
-            with st.expander("📝 Decision Panel"):
-                st.info(f"AI Report: {cand['report']}")
+            # Decision Panel terintegrasi dengan Email
+            with st.expander("📝 Decision Panel", expanded=True):
+                st.info(f"**AI Evaluation Report:**\n\n{cand['report']}")
                 opts = ["Pending", "Accepted", "Rejected"]
                 new_dec = st.radio("Verdict:", opts, index=opts.index(cand['status']) if cand['status'] in opts else 0)
-                if st.button("Confirm Decision"):
+                
+                # TOMBOL TUNGGAL (Decision + Email)
+                if st.button("🚀 Confirm Decision & Send Email"):
+                    # Update Database
                     cursor = conn.cursor()
                     cursor.execute("UPDATE analysis_results SET status = ? WHERE id = ?", (new_dec, int(cand['id'])))
-                    conn.commit(); st.success("Updated!"); time.sleep(0.5); st.rerun()
-        else: st.info("No talent data.")
+                    conn.commit()
+                    
+                    # Kirim Email hanya jika Accepted
+                    if new_dec == "Accepted":
+                        with st.spinner("Sending automated report to candidate..."):
+                            success = send_email(
+                                target_email=cand['candidate_email'], 
+                                candidate_name="Candidate", 
+                                score=cand['score_val'], 
+                                feedback=cand['report']
+                            )
+                            if success:
+                                st.success(f"Email successfully sent to {cand['candidate_email']}!")
+                            else:
+                                st.error("Database updated, but email failed to send.")
+                    
+                    st.success(f"Status updated to {new_dec}!")
+                    time.sleep(1)
+                    st.rerun()
+        else:
+            st.info("No talent data available yet.")
         conn.close()
 
 # ==========================================
