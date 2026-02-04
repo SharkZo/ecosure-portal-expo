@@ -262,19 +262,6 @@ if user_role == "Applicant Portal":
                         if row['status'] == 'Accepted': st.success("🌳 **ACCEPTED** - Check your email!")
                         elif row['status'] == 'Rejected': st.error("🙏 **NOT SELECTED**")
                         else: st.warning("⏳ **PENDING REVIEW**")
-# --- MASUKKAN DI SINI (Baris 265) ---
-            st.divider() # Garis pembatas kecil
-            if st.button(f"📧 Kirim Hasil ke Email", key=f"btn_{row['candidate_email']}"):
-                with st.spinner("Mengirim..."):
-                    # Kita ambil data langsung dari database (row)
-                    success = send_email(
-                        target_email=row['candidate_email'], 
-                        candidate_name="Kandidat", # Bisa ganti row['name'] jika ada
-                        score=row['score_val'], # Sesuaikan nama kolom di tabel kamu
-                        feedback=row['report'] # Sesuaikan nama kolom di tabel kamu
-                    )
-                    if success:
-                        st.success("Email terkirim!")
 # ==========================================
 # 7. HR MANAGEMENT
 # ==========================================
@@ -295,6 +282,34 @@ elif user_role == "HR Management":
             conn = sqlite3.connect('ecosure.db')
             conn.execute("DELETE FROM analysis_results")
             conn.commit(); conn.close(); st.rerun()
+            
+            # --- BAGIAN DECISION PANEL YANG SUDAH DIPERBAIKI ---
+            with st.expander("📝 Decision Panel", expanded=True):
+                st.info(f"AI Report: {cand['report']}")
+                opts = ["Pending", "Accepted", "Rejected"]
+                new_dec = st.radio("Verdict:", opts, index=opts.index(cand['status']) if cand['status'] in opts else 0)
+                
+                if st.button("Confirm Decision & Send Email"):
+                    # 1. Update status di Database
+                    cursor = conn.cursor()
+                    cursor.execute("UPDATE analysis_results SET status = ? WHERE id = ?", (new_dec, int(cand['id'])))
+                    conn.commit()
+                    
+                    # 2. Logika Kirim Email jika HR memilih 'Accepted'
+                    if new_dec == "Accepted":
+                        with st.spinner("Sending automated evaluation report..."):
+                            success = send_email(
+                                target_email=cand['candidate_email'], 
+                                candidate_name="Candidate", 
+                                score=cand['score_val'], 
+                                feedback=cand['report']
+                            )
+                            if success:
+                                st.success(f"Notification sent to {cand['candidate_email']}!")
+                    
+                    st.success(f"Decision updated to {new_dec}!")
+                    time.sleep(1)
+                    st.rerun()
 
         st.title("📊 Intelligence Dashboard")
         conn = sqlite3.connect('ecosure.db')
