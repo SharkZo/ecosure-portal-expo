@@ -91,9 +91,33 @@ def input_pdf_text(uploaded_file):
         if extracted: text += str(extracted)
     return text
 
-# ==========================================
-# 4. PREMIUM UI DESIGN (CSS)
-# ==========================================
+    # --- FUNGSI KIRIM EMAIL ---
+def send_email(target_email, candidate_name, score, feedback):
+    try:
+        # Mengambil data dari Secrets (Streamlit Cloud)
+        sender_email = st.secrets["EMAIL_USER"]
+        sender_password = st.secrets["EMAIL_PASS"]
+        
+        # Pengaturan pesan
+        msg = MIMEMultipart()
+        msg['From'] = sender_email
+        msg['To'] = target_email
+        msg['Subject'] = f"Hasil Seleksi Ecosure Portal - {candidate_name}"
+        
+        body = f"Halo {candidate_name},\n\nTerima kasih telah melamar. Skor CV Anda: {score}/100\n\nEvaluasi:\n{feedback}"
+        msg.attach(MIMEText(body, 'plain'))
+        
+        # Proses pengiriman melalui server Gmail
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        st.error(f"Gagal kirim email: {e}")
+        return False
+
 # ==========================================
 # 4. PREMIUM UI DESIGN (CSS)
 # ==========================================
@@ -238,7 +262,19 @@ if user_role == "Applicant Portal":
                         if row['status'] == 'Accepted': st.success("🌳 **ACCEPTED** - Check your email!")
                         elif row['status'] == 'Rejected': st.error("🙏 **NOT SELECTED**")
                         else: st.warning("⏳ **PENDING REVIEW**")
-
+# --- MASUKKAN DI SINI (Baris 265) ---
+            st.divider() # Garis pembatas kecil
+            if st.button(f"📧 Kirim Hasil ke Email", key=f"btn_{row['candidate_email']}"):
+                with st.spinner("Mengirim..."):
+                    # Kita ambil data langsung dari database (row)
+                    success = send_email(
+                        target_email=row['candidate_email'], 
+                        candidate_name="Kandidat", # Bisa ganti row['name'] jika ada
+                        score=row['score_val'], # Sesuaikan nama kolom di tabel kamu
+                        feedback=row['report'] # Sesuaikan nama kolom di tabel kamu
+                    )
+                    if success:
+                        st.success("Email terkirim!")
 # ==========================================
 # 7. HR MANAGEMENT
 # ==========================================
