@@ -8,10 +8,41 @@ import time
 import plotly.express as px
 import hashlib
 
+
 # ==========================================
-# 1. GOOGLE API SETUP
+# 1. GOOGLE API SETUP (Pro Version)
 # ==========================================
-genai.configure(api_key="AIzaSyDLtTryGNLcm4ImGheTAnTNzoVV8Cy9_Z4")
+import streamlit as st
+import google.generativeai as genai
+
+# Fungsi untuk inisialisasi API
+def setup_gemini():
+    # Gunakan try-except agar tidak error jika file secrets tidak ada di laptop
+    try:
+        if "GEMINI_API_KEY" in st.secrets:
+            api_key = st.secrets["GEMINI_API_KEY"]
+            genai.configure(api_key=api_key)
+            return True
+    except:
+        # Jika di laptop dan file secrets tidak ditemukan, abaikan saja
+        pass
+    
+    # 2. Untuk versi Local (Laptop)
+    # Gunakan expander agar rapi di sidebar
+    with st.sidebar.expander("🔐 System Settings", expanded=True):
+        api_key_input = st.text_input("Gemini API Key:", type="password", help="Masukkan key hanya jika di laptop")
+        
+    if api_key_input:
+        genai.configure(api_key=api_key_input)
+        return True
+        
+    return False
+
+# Jalankan fungsi setup
+api_ready = setup_gemini()
+
+if not api_ready:
+    st.sidebar.warning("⚠️ API Key belum terpasang.")
 
 # ==========================================
 # 2. DATABASE LOGIC
