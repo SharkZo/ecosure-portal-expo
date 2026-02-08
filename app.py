@@ -304,9 +304,9 @@ if user_role == "Applicant Portal":
                         if row['status'] == 'Accepted': st.success("🌳 **ACCEPTED** - Check your email!")
                         elif row['status'] == 'Rejected': st.error("🙏 **NOT SELECTED**")
                         else: st.warning("⏳ **PENDING REVIEW**")
+
 # ==========================================
-# ==========================================
-# 7. HR MANAGEMENT (MODIFIED WITH TABS)
+# 7. HR MANAGEMENT (FINAL OPTIMIZED UI)
 # ==========================================
 elif user_role == "HR Management":
     # Header Banner for HR
@@ -334,18 +334,18 @@ elif user_role == "HR Management":
         df = pd.read_sql_query("SELECT * FROM analysis_results ORDER BY score_val DESC", conn)
         
         if not df.empty:
-            # 1. Metrics
+            # 1. Metrics Overview
             m1, m2, m3 = st.columns(3)
-            m1.metric("Applicants", len(df))
+            m1.metric("Total Applicants", len(df))
             m2.metric("Accepted", len(df[df['status']=='Accepted']))
             m3.metric("Avg Score", f"{round(df['score_val'].mean(), 1)}%")
 
             st.divider()
 
-            # --- MODIFIKASI DIMULAI DI SINI: SISTEM TABS ---
-            tab1, tab2, tab3 = st.tabs(["⏳ Pending Review", "✅ Reviewed History", "📈 Analytics Charts"])
+            # --- 2. TABS UNTUK MANAJEMEN DATA ---
+            tab_pending, tab_history = st.tabs(["⏳ Pending Review", "✅ Reviewed History"])
 
-            with tab1:
+            with tab_pending:
                 st.subheader("Unprocessed Applications")
                 df_pending = df[df['status'] == 'Pending']
                 if not df_pending.empty:
@@ -353,31 +353,43 @@ elif user_role == "HR Management":
                 else:
                     st.success("All applications have been reviewed! ✨")
 
-            with tab2:
-                st.subheader("Processed Applications")
+            with tab_history:
+                st.subheader("Processed Applications History")
+                
+                # FITUR FILTER JOB TITLE
+                all_jobs = ["All Positions"] + list(df['job_title'].unique())
+                selected_job = st.selectbox("🔍 Filter History by Job Title:", all_jobs)
+                
+                # Filter data berdasarkan status yang BUKAN Pending
                 df_reviewed = df[df['status'] != 'Pending']
+                
+                if selected_job != "All Positions":
+                    df_reviewed = df_reviewed[df_reviewed['job_title'] == selected_job]
+                
                 if not df_reviewed.empty:
                     st.dataframe(df_reviewed[['candidate_email', 'job_title', 'score_val', 'status']], use_container_width=True)
                 else:
-                    st.info("No reviewed candidates yet.")
+                    st.info(f"No history found for {selected_job}.")
 
-            with tab3:
-                # Memindahkan Chart ke Tab tersendiri agar Dashboard utama tidak terlalu panjang
-                c_bar, c_pie = st.columns([2, 1])
-                color_map = {'Accepted': '#1B4332', 'Rejected': '#D32F2F', 'Pending': '#3A86FF'}
-                with c_bar:
-                    st.plotly_chart(px.bar(df, x='candidate_email', y='score_val', color='status', color_discrete_map=color_map, title="Global Rankings"), use_container_width=True)
-                with c_pie:
-                    st.plotly_chart(px.pie(df, names='status', hole=0.5, color='status', color_discrete_map=color_map, title="Status Distribution"), use_container_width=True)
+            st.divider()
+
+            # --- 3. ANALYTICS CHART (TAMPIL OTOMATIS DI BAWAH) ---
+            st.subheader("📈 Recruitment Analytics")
+            c_bar, c_pie = st.columns([2, 1])
+            color_map = {'Accepted': '#1B4332', 'Rejected': '#D32F2F', 'Pending': '#3A86FF'}
+            
+            with c_bar:
+                st.plotly_chart(px.bar(df, x='candidate_email', y='score_val', color='status', 
+                                      color_discrete_map=color_map, title="Global Rankings"), use_container_width=True)
+            with c_pie:
+                st.plotly_chart(px.pie(df, names='status', hole=0.5, color='status', 
+                                      color_discrete_map=color_map, title="Status Distribution"), use_container_width=True)
 
             st.divider()
             
-            # 3. Decision Section (Tetap seperti aslinya tapi lebih fokus)
+            # --- 4. DECISION SECTION ---
             st.subheader("📂 Review & Decisions")
             df['key'] = df['candidate_email'] + " (" + df['job_title'] + ")"
-            
-            # Tips: Kita bisa memfilter selectbox ini agar hanya menampilkan yang 'Pending' jika mau, 
-            # tapi untuk sekarang kita biarkan menampilkan semua agar HR bisa mengubah keputusan jika salah.
             target = st.selectbox("Select Candidate to Process:", df['key'].unique())
             
             cand = df[df['key'] == target].iloc[0]
