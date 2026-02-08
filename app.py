@@ -135,28 +135,45 @@ ECOSURE Recruitment Team
         st.error(f"Email Error: {e}")
         return False
 
-# ==========================================
 # 4. PREMIUM UI DESIGN (CSS)
-# ==========================================
-st.set_page_config(page_title="ECOSURE Portal", layout="wide")
+# =========================================
+import streamlit as st
+from PIL import Image
 
+# 1. LOAD LOGO DULU (Paling Atas setelah import)
+# Pastikan file "Ecosurelogo.jpg" sudah ada di folder yang sama
+try:
+    logo = Image.open("Ecosurelogo.jpg")
+except:
+    logo = None # Antisipasi jika file gambar belum di-upload
+
+# 2. SET PAGE CONFIG (Gunakan variabel logo yang sudah di-load)
+st.set_page_config(
+    page_title="ECOSURE Portal",
+    page_icon=logo, # Logo akan muncul di tab browser
+    layout="wide"
+)
+
+# 3. SIDEBAR LOGO
+if logo:
+    st.sidebar.image(logo, use_container_width=True)
+    st.sidebar.markdown("---") 
+
+# 4. PREMIUM UI DESIGN (CSS)
 st.markdown("""
     <style>
-    /* Tambahan Baru: Menghilangkan Header & Footer Streamlit */
     header {visibility: hidden;}
     footer {visibility: hidden;}
-    #MainMenu {visibility: hidden;} /* Menghilangkan menu titik tiga */
+    #MainMenu {visibility: hidden;}
 
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
     * { font-family: 'Plus Jakarta Sans', sans-serif; }
     
     .stApp { background: radial-gradient(circle at top right, #E8F5E9, #F1F8E9, #FFFFFF); }
-    
-    /* CSS kamu yang lain tetap di sini... */
     </style>
     """, unsafe_allow_html=True)
 
-# DATA JOB BOARD
+# 5. DATA JOB BOARD (Lanjutkan kodinganmu...)
 jobs_db = {
     "Senior Python Developer": {"company": "ECOSURE Tech", "req": "- 5+ years experience\n- Django/FastAPI Expert\n- Docker & K8s"},
     "AI & ML Engineer": {"company": "ECOSURE Intelligence", "req": "- Deep Learning Specialist\n- LLM Production Experience\n- PyTorch/TensorFlow"},
@@ -280,7 +297,8 @@ if user_role == "Applicant Portal":
                         elif row['status'] == 'Rejected': st.error("🙏 **NOT SELECTED**")
                         else: st.warning("⏳ **PENDING REVIEW**")
 # ==========================================
-# 7. HR MANAGEMENT
+# ==========================================
+# 7. HR MANAGEMENT (MODIFIED WITH TABS)
 # ==========================================
 elif user_role == "HR Management":
     # Header Banner for HR
@@ -308,35 +326,54 @@ elif user_role == "HR Management":
         df = pd.read_sql_query("SELECT * FROM analysis_results ORDER BY score_val DESC", conn)
         
         if not df.empty:
-            # 1. Metrics & Charts
+            # 1. Metrics
             m1, m2, m3 = st.columns(3)
             m1.metric("Applicants", len(df))
             m2.metric("Accepted", len(df[df['status']=='Accepted']))
             m3.metric("Avg Score", f"{round(df['score_val'].mean(), 1)}%")
 
             st.divider()
-            c_bar, c_pie = st.columns([2, 1])
-            color_map = {'Accepted': '#1B4332', 'Rejected': '#D32F2F', 'Pending': '#3A86FF'}
-            with c_bar:
-                st.plotly_chart(px.bar(df, x='candidate_email', y='score_val', color='status', color_discrete_map=color_map, title="Rankings"), use_container_width=True)
-            with c_pie:
-                st.plotly_chart(px.pie(df, names='status', hole=0.5, color='status', color_discrete_map=color_map), use_container_width=True)
-            
-            # 2. Leaderboard
-            st.subheader("🏆 Leaderboard")
-            st.dataframe(df[['candidate_email', 'job_title', 'score_val', 'status']], use_container_width=True)
+
+            # --- MODIFIKASI DIMULAI DI SINI: SISTEM TABS ---
+            tab1, tab2, tab3 = st.tabs(["⏳ Pending Review", "✅ Reviewed History", "📈 Analytics Charts"])
+
+            with tab1:
+                st.subheader("Unprocessed Applications")
+                df_pending = df[df['status'] == 'Pending']
+                if not df_pending.empty:
+                    st.dataframe(df_pending[['candidate_email', 'job_title', 'score_val', 'status']], use_container_width=True)
+                else:
+                    st.success("All applications have been reviewed! ✨")
+
+            with tab2:
+                st.subheader("Processed Applications")
+                df_reviewed = df[df['status'] != 'Pending']
+                if not df_reviewed.empty:
+                    st.dataframe(df_reviewed[['candidate_email', 'job_title', 'score_val', 'status']], use_container_width=True)
+                else:
+                    st.info("No reviewed candidates yet.")
+
+            with tab3:
+                # Memindahkan Chart ke Tab tersendiri agar Dashboard utama tidak terlalu panjang
+                c_bar, c_pie = st.columns([2, 1])
+                color_map = {'Accepted': '#1B4332', 'Rejected': '#D32F2F', 'Pending': '#3A86FF'}
+                with c_bar:
+                    st.plotly_chart(px.bar(df, x='candidate_email', y='score_val', color='status', color_discrete_map=color_map, title="Global Rankings"), use_container_width=True)
+                with c_pie:
+                    st.plotly_chart(px.pie(df, names='status', hole=0.5, color='status', color_discrete_map=color_map, title="Status Distribution"), use_container_width=True)
 
             st.divider()
             
-            # 3. Decision Section
+            # 3. Decision Section (Tetap seperti aslinya tapi lebih fokus)
             st.subheader("📂 Review & Decisions")
             df['key'] = df['candidate_email'] + " (" + df['job_title'] + ")"
-            target = st.selectbox("Select Candidate:", df['key'].unique())
             
-            # Mencari data kandidat yang dipilih
+            # Tips: Kita bisa memfilter selectbox ini agar hanya menampilkan yang 'Pending' jika mau, 
+            # tapi untuk sekarang kita biarkan menampilkan semua agar HR bisa mengubah keputusan jika salah.
+            target = st.selectbox("Select Candidate to Process:", df['key'].unique())
+            
             cand = df[df['key'] == target].iloc[0]
 
-            # Download CV Button
             if cand['cv_blob'] is not None:
                 st.download_button(
                     label=f"📥 Download CV - {cand['candidate_email']}", 
@@ -345,22 +382,18 @@ elif user_role == "HR Management":
                     mime="application/pdf"
                 )
             
-            # Decision Panel terintegrasi dengan Email
             with st.expander("📝 Decision Panel", expanded=True):
                 st.info(f"**AI Evaluation Report:**\n\n{cand['report']}")
                 opts = ["Pending", "Accepted", "Rejected"]
                 new_dec = st.radio("Verdict:", opts, index=opts.index(cand['status']) if cand['status'] in opts else 0)
                 
-                # TOMBOL TUNGGAL (Decision + Email)
                 if st.button("🚀 Confirm Decision & Send Email"):
-                    # Update Database
                     cursor = conn.cursor()
                     cursor.execute("UPDATE analysis_results SET status = ? WHERE id = ?", (new_dec, int(cand['id'])))
                     conn.commit()
                     
-                    # Kirim Email hanya jika Accepted
                     if new_dec == "Accepted":
-                        with st.spinner("Sending automated report to candidate..."):
+                        with st.spinner("Sending automated report..."):
                             success = send_email(
                                 target_email=cand['candidate_email'], 
                                 candidate_name="Candidate", 
@@ -368,9 +401,9 @@ elif user_role == "HR Management":
                                 feedback=cand['report']
                             )
                             if success:
-                                st.success(f"Email successfully sent to {cand['candidate_email']}!")
+                                st.success(f"Email sent to {cand['candidate_email']}!")
                             else:
-                                st.error("Database updated, but email failed to send.")
+                                st.error("Email failed.")
                     
                     st.success(f"Status updated to {new_dec}!")
                     time.sleep(1)
@@ -378,22 +411,3 @@ elif user_role == "HR Management":
         else:
             st.info("No talent data available yet.")
         conn.close()
-
-# ==========================================
-# 8. FOOTER (Kotak Merah Bawah)
-# ==========================================
-# [DECORATION: Kotak Merah Bawah / Footer]
-st.markdown("""
-    <div style="margin-top: 50px; padding: 25px; text-align: center; border-top: 1px solid #e0e0e0;">
-        <p style="color: #1B4332; font-weight: 800; font-size: 1.2rem; margin-bottom: 5px;">🌿 ECOSURE PORTAL</p>
-        <p style="color: #888; font-size: 0.8rem; line-height: 1.5;">
-            Empowering Green Careers through Artificial Intelligence.<br>
-            Developed for <b>Sustainability EXPO 2026</b>
-        </p>
-        <div style="margin-top: 15px;">
-            <span style="background: #E8F5E9; color: #1B4332; padding: 5px 15px; border-radius: 20px; font-size: 0.7rem; font-weight: bold; border: 1px solid #C8E6C9;">AI SCREENING</span>
-            <span style="background: #E8F5E9; color: #1B4332; padding: 5px 15px; border-radius: 20px; font-size: 0.7rem; font-weight: bold; border: 1px solid #C8E6C9; margin-left: 8px;">SECURE DB</span>
-            <span style="background: #E8F5E9; color: #1B4332; padding: 5px 15px; border-radius: 20px; font-size: 0.7rem; font-weight: bold; border: 1px solid #C8E6C9; margin-left: 8px;">PDF PARSING</span>
-        </div>
-    </div>
-""", unsafe_allow_html=True)
