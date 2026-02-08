@@ -139,25 +139,33 @@ ECOSURE Recruitment Team
 # =========================================
 import streamlit as st
 from PIL import Image
+import os
 
-# 1. LOAD LOGO DULU (Paling Atas setelah import)
-# Pastikan file "Ecosurelogo.jpg" sudah ada di folder yang sama
-try:
-    logo = Image.open("Ecosurelogo.jpg")
-except:
-    logo = None # Antisipasi jika file gambar belum di-upload
+# ==========================================
+# 1. LOAD IMAGE & SET PAGE CONFIG (WAJIB PALING ATAS)
+# ==========================================
+logo_path = "Ecosurelogo.jpg"
+logo = None
 
-# 2. SET PAGE CONFIG (Gunakan variabel logo yang sudah di-load)
+# Kita buka gambarnya dulu menggunakan PIL (tanpa perintah st.)
+if os.path.exists(logo_path):
+    logo = Image.open(logo_path)
+
+# SEKARANG baru set page config (Perintah Streamlit pertama)
 st.set_page_config(
     page_title="ECOSURE Portal",
-    page_icon=logo, # Logo akan muncul di tab browser
+    page_icon=logo if logo else "🌿", # Gunakan logo jika ada, jika tidak pakai emoji
     layout="wide"
 )
 
-# 3. SIDEBAR LOGO
+# ==========================================
+# 2. SIDEBAR LOGO & UI
+# ==========================================
 if logo:
     st.sidebar.image(logo, use_container_width=True)
-    st.sidebar.markdown("---") 
+    st.sidebar.markdown("---")
+else:
+    st.sidebar.error(f"File {logo_path} tidak ditemukan!")
 
 # 4. PREMIUM UI DESIGN (CSS)
 st.markdown("""
@@ -173,7 +181,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 5. DATA JOB BOARD (Lanjutkan kodinganmu...)
+# 5. DATA JOB BOARD
 jobs_db = {
     "Senior Python Developer": {"company": "ECOSURE Tech", "req": "- 5+ years experience\n- Django/FastAPI Expert\n- Docker & K8s"},
     "AI & ML Engineer": {"company": "ECOSURE Intelligence", "req": "- Deep Learning Specialist\n- LLM Production Experience\n- PyTorch/TensorFlow"},
