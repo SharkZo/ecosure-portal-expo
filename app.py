@@ -7,9 +7,9 @@ import re
 import time
 import plotly.express as px
 import hashlib
-import smtplib  # WAJIB ADA
-from email.mime.text import MIMEText # WAJIB ADA
-from email.mime.multipart import MIMEMultipart # WAJIB ADA
+import smtplib 
+from email.mime.text import MIMEText 
+from email.mime.multipart import MIMEMultipart 
 
 
 # ==========================================
@@ -20,25 +20,30 @@ import google.generativeai as genai
 
 # Fungsi untuk inisialisasi API
 def setup_gemini():
-    # Gunakan try-except agar tidak error jika file secrets tidak ada di laptop
+    # 1. Cek versi Cloud (Streamlit Secrets)
     try:
-        if "GEMINI_API_KEY" in st.secrets:
-            api_key = st.secrets["GEMINI_API_KEY"]
-            genai.configure(api_key=api_key)
+        if "GEMINI_API_KEY" in st.secrets and st.secrets["GEMINI_API_KEY"]:
+            genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
             return True
-    except:
-        # Jika di laptop dan file secrets tidak ditemukan, abaikan saja
+    except Exception:
+        # Lanjut ke manual input jika secrets tidak tersedia
         pass
     
-    # 2. Untuk versi Local (Laptop)
-    # Gunakan expander agar rapi di sidebar
+    # 2. Untuk versi Local (Manual Input)
+    # Munculkan input manual HANYA jika secrets di atas gagal/tidak ada
     with st.sidebar.expander("🔐 System Settings", expanded=True):
-        api_key_input = st.text_input("Gemini API Key:", type="password", help="Masukkan key hanya jika di laptop")
+        api_key_input = st.text_input(
+            "Gemini API Key:", 
+            type="password", 
+            help="Masukkan key jika menjalankan di laptop"
+        )
         
-    if api_key_input:
-        genai.configure(api_key=api_key_input)
-        return True
-        
+        if api_key_input:
+            genai.configure(api_key=api_key_input)
+            return True
+    
+    # Berikan peringatan jika kunci belum diisi sama sekali
+    st.sidebar.warning("⚠️ API Key required to activate panels.")
     return False
 
 # Jalankan fungsi setup
